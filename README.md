@@ -221,5 +221,6 @@ curl -X POST "http://localhost:8080/profile/meter/mock-path" -H "accept: */*"
 201 – in case of success
 400 – if the JSON is invalid
 404 – if wanted meter consumption does not exist
+500 – internal server error
 ```
 

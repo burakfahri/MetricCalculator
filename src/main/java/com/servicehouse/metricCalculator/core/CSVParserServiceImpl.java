@@ -34,6 +34,9 @@ public class CSVParserServiceImpl implements CSVParserService {
         this.profileService = profileService;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public  boolean importFraction( String filePathStr) throws IOException,
             NullParameterException, FractionValidationException {
@@ -83,7 +86,9 @@ public class CSVParserServiceImpl implements CSVParserService {
     }
 
 
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean importMeter(String filePathStr) throws IOException, NullParameterException {
         if(CommonUtil.checkParameterIsNull(filePathStr))

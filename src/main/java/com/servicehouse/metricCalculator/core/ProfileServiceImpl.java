@@ -29,6 +29,11 @@ public class ProfileServiceImpl implements ProfileService {
     protected ProfileMeterRepository profileMeterRepository;
     protected ProfileFractionRepository profileFractionRepository;
 
+    /**
+     * load all the parameters from the db and starts the Profile Service
+     * @param profileMeterRepository which provides meter connection btw db and service
+     * @param profileFractionRepository which fraction meter connection btw db and service
+     */
     @Autowired
     public ProfileServiceImpl(ProfileMeterRepository profileMeterRepository, ProfileFractionRepository profileFractionRepository) {
         profileFractionMap = new ConcurrentHashMap<>();
@@ -44,8 +49,13 @@ public class ProfileServiceImpl implements ProfileService {
                 , profileFraction));
     }
 
-
-    public boolean checkProfileFraction(Map<String, List<ProfileFraction>> profileGroupedFractionMap) throws FractionValidationException {
+    /**
+     * chects the profile fractions by its profile and calculate every sum of the profile is equal to 1D
+     * @param profileGroupedFractionMap which has groupped profile fraction
+     * @return the true if it is valid or not
+     *
+     */
+    public boolean checkProfileFraction(Map<String, List<ProfileFraction>> profileGroupedFractionMap) {
         for (Map.Entry<String, List<ProfileFraction>> stringListEntry : profileGroupedFractionMap.entrySet()) {
             if (stringListEntry.getValue().stream().mapToDouble(ProfileFraction::getFractionPercentage).sum() != 1D)
                 return false;
@@ -53,46 +63,63 @@ public class ProfileServiceImpl implements ProfileService {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void addProfileFractions(List<ProfileFraction> profileFractionList) throws FractionValidationException, NullParameterException {
         if (CommonUtil.checkParameterIsNull(profileFractionList))
             throw new NullParameterException("Profile fraction list is null or empty");
-        profileFractionRepository.deleteAll();
 
+        //delete all the fractions from db
+        profileFractionRepository.deleteAll();
+        //clear the cache
+        profileFractionMap.clear();
+
+        //group it as it's name
         Map<String, List<ProfileFraction>> profileGroupedFractionMap = profileFractionList.stream()
                 .collect(Collectors.groupingBy(ProfileFraction::getName));
 
+        //validate it
         if(!checkProfileFraction(profileGroupedFractionMap))
             throw new FractionValidationException("Sum of the fraction is not equals to 1.00");
 
-
+        //put all the fraction to the db and cache
         profileFractionList.forEach(profileFraction -> {
             profileFractionMap.put(new Profile(profileFraction.getName(), profileFraction.getMonth()), profileFraction);
             profileFractionRepository.save(profileFraction);
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized void addProfileMeters(List<ProfileMeter> profileMeterList) throws NullParameterException {
         if (CommonUtil.checkParameterIsNull(profileMeterList) || profileMeterList.isEmpty())
             throw new NullParameterException("Profile meter list is null or empty");
 
+        // group the profile meter according to its profile
         Map<String, List<ProfileMeter>> profileGroupedMeterMap = profileMeterList.stream()
                 .collect(Collectors.groupingBy(ProfileMeter::getMeterId));
 
+        //clear cache and db
         profileMeterRepository.deleteAll();
-        profileMeterList.clear();
+        profileMeterMap.clear();
 
+        //for every profile meter group
         profileGroupedMeterMap.values().forEach(profileMeterList1 -> {
+            //validate the integrity like checking if it is incremental
             if (DataIntegrityValidatorUtil.validateProfileFractionIntegrity(profileMeterList1)) {
 
+                //calculating the sum off the consumption
                 Double sum = profileMeterList1.get(profileMeterList1.size() - 1).getMeterReading();
-
-                DataIntegrityValidatorUtil.convertConsumptionList(profileMeterList1);
-
+                //convert list to consumption list
+                DataIntegrityValidatorUtil.convertConsumptionList(profileMeterList);
+                //validate consumption according to it's fraction
                 if (validateListMetersDataConsistency(profileMeterList, sum))
-
-                    profileMeterList.forEach(profileMeter -> {
+                    //add lists to cache and db
+                    profileMeterList1.forEach(profileMeter -> {
                         profileMeterMap.computeIfAbsent(profileMeter.getMeterId(),
                                 (s -> new ArrayList<>())).add(profileMeter);
                         profileMeterRepository.save(profileMeter);
@@ -100,6 +127,7 @@ public class ProfileServiceImpl implements ProfileService {
             }
         });
     }
+
 
     private boolean validateListMetersDataConsistency(List<ProfileMeter> profileMeterList, Double sum) {
         return profileMeterList.stream().allMatch(profileMeter ->
@@ -109,6 +137,9 @@ public class ProfileServiceImpl implements ProfileService {
                                 profileFractionMap.get(profileMeter.getProfile()).getFractionPercentage(), sum));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Double getProfile(String meterId, Month month) throws NullParameterException, MeterNotFoundException {
         if (CommonUtil.checkParameterIsNull(meterId, month))

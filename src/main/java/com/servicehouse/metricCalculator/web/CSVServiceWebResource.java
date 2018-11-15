@@ -27,7 +27,8 @@ public class CSVServiceWebResource {
     public ResponseEntity addFractions(@PathVariable String path)
     {
         try {
-            csvParserService.importFraction(path);
+            if(!csvParserService.importFraction(path))
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }catch (Exception e) {
             return exceptionHandler(e);
         }
@@ -38,7 +39,8 @@ public class CSVServiceWebResource {
     public ResponseEntity addMeters(@PathVariable String path)
     {
         try {
-            csvParserService.importMeter(path);
+            if(!csvParserService.importMeter(path))
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             return exceptionHandler(e);
         }
