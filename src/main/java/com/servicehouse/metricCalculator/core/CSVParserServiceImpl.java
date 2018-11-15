@@ -49,12 +49,15 @@ public class CSVParserServiceImpl implements CSVParserService {
         try(Reader reader = Files.newBufferedReader(filePath);
             CSVParser csvParser = new CSVParser(reader , CSVFormat.DEFAULT.withFirstRecordAsHeader().
                     withHeader(FRACTION_HEADERS).withTrim())) {
+            log.info("parsing fraction");
             profileService.addProfileFractions(parseFractionData(csvParser));
+            log.info("fractions have been added ");
             Files.delete(filePath);
             return true;
         }
         catch (IOException e)
         {
+            log.error(e.getMessage());
             writeErrorLogToFile(e,filePath);
         }
         return false;
@@ -115,10 +118,13 @@ public class CSVParserServiceImpl implements CSVParserService {
     private void writeErrorLogToFile(Exception e, Path filePath) throws IOException {
         String fileName = filePath.getFileName().toString();
         Path file = filePath.getParent();
-        if(file == null)
-            throw new FileNotFoundException("Parent file has not found for "+ filePath);
+        if(file == null) {
+            log.error("Parent file has not found for {}" , filePath);
+            throw new FileNotFoundException("Parent file has not found for " + filePath);
+        }
         try(BufferedWriter writer = new BufferedWriter(new FileWriter(file.toAbsolutePath().toString().concat("/")
                 .concat(fileName).concat(".log")))) {
+            log.info("wiring message to log file {}",e.getMessage());
             writer.write(e.getMessage());
             log.info(e.getMessage());
         }

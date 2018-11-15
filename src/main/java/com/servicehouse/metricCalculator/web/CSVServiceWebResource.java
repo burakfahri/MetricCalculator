@@ -5,6 +5,7 @@ import com.servicehouse.metricCalculator.api.exception.FractionValidationExcepti
 import com.servicehouse.metricCalculator.api.exception.MeterNotFoundException;
 import com.servicehouse.metricCalculator.api.exception.NullParameterException;
 import com.servicehouse.metricCalculator.api.service.CSVParserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,7 @@ import java.io.IOException;
 
 @RequestMapping("/profile")
 @Controller
+@Slf4j
 public class CSVServiceWebResource {
     private CSVParserService csvParserService;
 
@@ -27,6 +29,8 @@ public class CSVServiceWebResource {
     public ResponseEntity addFractions(@PathVariable String path)
     {
         try {
+            log.info("add fractions from file has been requested for {}",path);
+
             if(!csvParserService.importFraction(path))
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }catch (Exception e) {
@@ -39,6 +43,7 @@ public class CSVServiceWebResource {
     public ResponseEntity addMeters(@PathVariable String path)
     {
         try {
+            log.info("add meters from file has been requested for {}",path);
             if(!csvParserService.importMeter(path))
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
@@ -48,6 +53,8 @@ public class CSVServiceWebResource {
     }
 
     private ResponseEntity exceptionHandler(Exception e) {
+        log.info("exception occurs {}",e.getMessage());
+
         if (e instanceof NullParameterException || e instanceof FractionValidationException || e instanceof IOException)
             return ResponseEntity.badRequest().body(e.getMessage());
         else return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
