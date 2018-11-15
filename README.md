@@ -28,6 +28,7 @@ because of heating.
   under the application.properties as 'create' after the first time, if you want
   do not want to create when you start everytime you should update as 'update'
   to the parameter
+- You must change the spring.datasource.url=jdbc:mariadb://localhost:3306/meter parameter with you connection properties to DB.
 ```
 #### Run
 ```
